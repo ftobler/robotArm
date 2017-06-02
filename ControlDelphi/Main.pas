@@ -61,6 +61,9 @@ type
     Edit2: TEdit;
     Button27: TButton;
     CheckBox1: TCheckBox;
+    Edit3: TEdit;
+    Label11: TLabel;
+    Label12: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
@@ -120,7 +123,7 @@ procedure TForm1.Button1Click(Sender: TObject);
 begin
   status('connecting...');
   Application.ProcessMessages;
-  if robot.connect(strtoint(Edit1.text))
+  if robot.connect(strtoint(Edit1.text), strtoint(Edit3.text))
     then
       begin
         status('com open.');

@@ -15,9 +15,9 @@ object Form1: TForm1
   Scaled = False
   OnCreate = FormCreate
   DesignSize = (
-    1582
-    733)
-  PixelsPerInch = 120
+    1584
+    741)
+  PixelsPerInch = 96
   TextHeight = 17
   object Panel1: TPanel
     Left = 439
@@ -156,7 +156,7 @@ object Form1: TForm1
     Height = 559
     TabOrder = 1
     object Label1: TLabel
-      Left = 178
+      Left = 202
       Top = 21
       Width = 64
       Height = 27
@@ -169,7 +169,7 @@ object Form1: TForm1
       ParentFont = False
     end
     object Label5: TLabel
-      Left = 178
+      Left = 210
       Top = 63
       Width = 64
       Height = 27
@@ -247,6 +247,20 @@ object Form1: TForm1
       Font.Style = [fsBold]
       ParentFont = False
     end
+    object Label11: TLabel
+      Left = 58
+      Top = 24
+      Width = 27
+      Height = 17
+      Caption = 'com'
+    end
+    object Label12: TLabel
+      Left = 58
+      Top = 56
+      Width = 31
+      Height = 17
+      Caption = 'baud'
+    end
     object Edit1: TEdit
       Left = 10
       Top = 21
@@ -256,9 +270,9 @@ object Form1: TForm1
       Text = '9'
     end
     object Button1: TButton
-      Left = 63
-      Top = 21
-      Width = 98
+      Left = 112
+      Top = 13
+      Width = 73
       Height = 33
       Caption = 'COM!'
       TabOrder = 0
@@ -424,13 +438,24 @@ object Form1: TForm1
     end
     object CheckBox1: TCheckBox
       Left = 8
-      Top = 72
+      Top = 88
       Width = 161
       Height = 17
       Caption = 'Send Start Sequence'
       Checked = True
       State = cbChecked
       TabOrder = 16
+    end
+    object Edit3: TEdit
+      Left = 10
+      Top = 53
+      Width = 47
+      Height = 25
+      Hint = 'Baudrate'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 17
+      Text = '9600'
     end
   end
   object Panel3: TPanel

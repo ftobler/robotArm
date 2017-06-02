@@ -13,7 +13,7 @@ type
       log : TStringList;
       constructor create;
       destructor destroy;
-      function connect(comPort : integer) : boolean;
+      function connect(comPort : integer; baudrate : integer) : boolean;
       function getXPos : single;
       function getYPos : single;
       function getZPos : single;
@@ -68,9 +68,9 @@ begin
   log.free;
 end;
 
-function TRobotArm.connect(comPort : integer) : boolean;
+function TRobotArm.connect(comPort : integer; baudrate: integer) : boolean;
 begin
-  com.Baud := 9600;
+  com.Baud := baudrate;
   Result := com.Open(comPort, RTS_ENABLED, DTR_DISABLED);
   if Result
     then timer.Enabled := true;
