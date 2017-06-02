@@ -1,0 +1,29 @@
+Unit Sample;
+
+Uses
+  ...com;
+
+const
+  ComNumber = 2;
+
+var
+  com : TCom;
+  data : char;
+
+begin
+  com := TCom.Create;
+  com.Baud := 9600;
+  if com.Open(ComNumber, RTS_DISABLED, DTR_DISABLED) 
+    then Showmessage('com open')
+    else Showmessage('cannot open com');
+  com.Send('Hello World');     //funktion text als charakter  
+                               //function Send(Data: Char): boolean; overload;
+                               ((function Send(Data: PChar; Len: cardinal): boolean; overload;
+  sleep(500);
+  if com.GetChar(data)
+    then Showmessage(data);
+
+  if com.
+  com.close;
+  com.free;
+end;
