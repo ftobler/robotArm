@@ -60,6 +60,7 @@ type
     Button25: TButton;
     Edit2: TEdit;
     Button27: TButton;
+    CheckBox1: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
@@ -117,13 +118,22 @@ end;
 
 procedure TForm1.Button1Click(Sender: TObject);
 begin
+  status('connecting...');
+  Application.ProcessMessages;
   if robot.connect(strtoint(Edit1.text))
-    then status('com open')
+    then
+      begin
+        status('com open.');
+        Application.ProcessMessages;
+        if (checkBox1.Checked) then    //send Start Sequence
+          begin
+            sleep(3000);
+            robot.setStepperPower(false);
+            robot.gotoPos(0, 120, 120);
+            robot.setStepperPower(true);
+          end;
+      end
     else status('cannot open com');
-  sleep(500);
-  robot.setStepperPower(false);
-  robot.gotoPos(0, 120, 120);
-  robot.setStepperPower(true);
 end;
 
 procedure TForm1.status(const text : String);
