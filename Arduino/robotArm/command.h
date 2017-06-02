@@ -10,6 +10,7 @@ struct Cmd {
   float valueY;
   float valueZ;
   float valueF;
+  float valueE;
   float valueT; 
 };
 

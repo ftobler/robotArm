@@ -13,6 +13,7 @@ Stepper stepper(2400, STEPPER_GRIPPER_PIN_0, STEPPER_GRIPPER_PIN_1, STEPPER_GRIP
 RampsStepper stepperRotate(Z_STEP_PIN, Z_DIR_PIN, Z_ENABLE_PIN);
 RampsStepper stepperLower(Y_STEP_PIN, Y_DIR_PIN, Y_ENABLE_PIN);
 RampsStepper stepperHigher(X_STEP_PIN, X_DIR_PIN, X_ENABLE_PIN);
+RampsStepper stepperExtruder(E_STEP_PIN, E_DIR_PIN, E_ENABLE_PIN);
 FanControl fan(FAN_PIN);
 RobotGeometry geometry;
 Interpolation interpolator;
@@ -53,15 +54,17 @@ void setup() {
   stepperHigher.setReductionRatio(32.0 / 9.0, 200 * 16);  //big gear: 32, small gear: 9, steps per rev: 200, microsteps: 16
   stepperLower.setReductionRatio( 32.0 / 9.0, 200 * 16);
   stepperRotate.setReductionRatio(32.0 / 9.0, 200 * 16);
+  stepperExtruder.setReductionRatio(32.0 / 9.0, 200 * 16);
   
   //start positions..
   stepperHigher.setPositionRad(PI / 2.0);  //90°
   stepperLower.setPositionRad(0);          // 0°
   stepperRotate.setPositionRad(0);         // 0°
+  stepperExtruder.setPositionRad(0);
   
   //enable and init..
   setStepperEnable(false);
-  interpolator.setInterpolation(0,120,120, 0,120,120);
+  interpolator.setInterpolation(0,120,120,0, 0,120,120,0);
   
   Serial.println("start");
 }
@@ -70,6 +73,7 @@ void setStepperEnable(bool enable) {
   stepperRotate.enable(enable);
   stepperLower.enable(enable);
   stepperHigher.enable(enable); 
+  stepperExtruder.enable(enable); 
   fan.enable(enable);
 }
 
@@ -80,6 +84,7 @@ void loop () {
   stepperRotate.stepToPositionRad(geometry.getRotRad());
   stepperLower.stepToPositionRad (geometry.getLowRad());
   stepperHigher.stepToPositionRad(geometry.getHighRad());
+  stepperExtruder.stepToPositionRad(interpolator.getEPosmm());
   stepperRotate.update();
   stepperLower.update();
   stepperHigher.update(); 
@@ -106,7 +111,7 @@ void loop () {
 
 
 void cmdMove(Cmd (&cmd)) {
-  interpolator.setInterpolation(cmd.valueX, cmd.valueY, cmd.valueZ, cmd.valueF);
+  interpolator.setInterpolation(cmd.valueX, cmd.valueY, cmd.valueZ, cmd.valueE, cmd.valueF);
 }
 void cmdDwell(Cmd (&cmd)) {
   delay(int(cmd.valueT * 1000));
@@ -153,7 +158,8 @@ void handleAsErr(Cmd (&cmd)) {
 
 void executeCommand(Cmd cmd) {
   if (cmd.id == -1) {
-    //printComment("parsing Error");
+    String msg = "parsing Error";
+    printComment(msg);
     handleAsErr(cmd);
     return;
   }
@@ -166,6 +172,9 @@ void executeCommand(Cmd cmd) {
   }
   if (cmd.valueZ == NAN) {
     cmd.valueZ = interpolator.getZPosmm();
+  }
+  if (cmd.valueE == NAN) {
+    cmd.valueE = interpolator.getEPosmm();
   }
   
    //decide what to do

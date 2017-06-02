@@ -6,6 +6,7 @@ Command::Command() {
   command.valueY = NAN;
   command.valueZ = NAN;
   command.valueF = 0;
+  command.valueE = 0;
   command.valueT = 0;  
 
   message = "";
@@ -48,21 +49,22 @@ bool Command::processMessage(String& msg) {
  // Serial.println(cmd.num);
   
 
-  //parse up to 4 Values
+  //parse up to 5 Values
   command.valueX = NAN; 
   command.valueY = NAN;
   command.valueZ = NAN;
+  command.valueE = NAN;
   command.valueF = 0;
   command.valueT = 0;
   int parsePosition = last + 1;
   int i = 0;
-  while (i < 4) {
+  while (i < 5) {
     char id = msg[parsePosition++];
     if (id != ' ') {  //test if a command here
       int first = parsePosition;
       int last = pos(msg, ' ', parsePosition);
       if (last < first) { //test if String is valid
-        i = 4; //exit;
+        i = 5; //exit;
       } else {
         String floatString = msg.substring(first, last);  //should contain a Numeric value
         float value = floatString.toFloat();
@@ -70,14 +72,15 @@ bool Command::processMessage(String& msg) {
           case 'X': command.valueX = value; break; 
           case 'Y': command.valueY = value; break; 
           case 'Z': command.valueZ = value; break; 
+          case 'E': command.valueZ = value; break; 
           case 'F': command.valueF = value; break; 
           case 'T': command.valueT = value; break; 
-          default: i = 4;
+          default: i = 5;
         }
         parsePosition = last + 1;
       }
     } else {
-      i = 4; //exit;
+      i = 5; //exit;
     }
     i++;
   }
