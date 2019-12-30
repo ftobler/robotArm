@@ -15,10 +15,7 @@ Command::Command() {
 bool Command::handleGcode() {
   if (Serial.available()) {
     char c = Serial.read();
-    if (c == '\n') {
-       return false; 
-    }
-    if (c == '\r') {
+    if (c == '\n' || c == '\r') {
        bool b = processMessage(message);
        message = "";
        return b;
@@ -31,6 +28,7 @@ bool Command::handleGcode() {
 
 bool Command::processMessage(String& msg) {
   msg += ' ';  //helps parsing
+  msg.toUpperCase();
   command.id = msg[0];
   //exit if not GCode
   if ((command.id != 'G') && (command.id != 'M')) {
@@ -47,7 +45,7 @@ bool Command::processMessage(String& msg) {
   String s = msg.substring(first, last);
   command.num = s.toInt();
  // Serial.println(cmd.num);
-  
+
 
   //parse up to 5 Values
   command.valueX = NAN; 
@@ -72,7 +70,7 @@ bool Command::processMessage(String& msg) {
           case 'X': command.valueX = value; break; 
           case 'Y': command.valueY = value; break; 
           case 'Z': command.valueZ = value; break; 
-          case 'E': command.valueZ = value; break; 
+          case 'E': command.valueE = value; break; 
           case 'F': command.valueF = value; break; 
           case 'T': command.valueT = value; break; 
           default: i = 5;
@@ -107,7 +105,7 @@ int Command::pos(String& s, char c, int start) {
 
 
 void printErr() {
-  Serial.println("rs"); //'resend'
+  Serial.println("echo unknown command"); //'resend'
 }
 
 void printFault() {

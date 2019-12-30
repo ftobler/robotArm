@@ -54,7 +54,7 @@ void Interpolation::setInterpolation(Point p1, float v) {
 }
 
 void Interpolation::setInterpolation(Point p0, Point p1, float av) {
-  v = av; //mm/s
+  v = av/60; //convert to mm/s -> 3d printer sw uses mm/min 
   
   float a = (p1.xmm - p0.xmm);
   float b = (p1.ymm - p0.ymm);
@@ -65,11 +65,11 @@ void Interpolation::setInterpolation(Point p0, Point p1, float av) {
     dist = e; 
   }
   
-  if (v < 5) { //includes 0 = default value
-    v = sqrt(dist) * 10; //set a good value for v
+  if (v < 1) { //includes 0 = default value
+    v = sqrt(dist) * 5; //set a good value for v
   }
-  if (v < 5) {
-     v = 5; 
+  if (v < 1) {
+     v = 1; 
   }
   
   tmul = v / dist;

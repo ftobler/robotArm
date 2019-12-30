@@ -2,7 +2,7 @@
 #include "robotGeometry.h"
 #include "interpolation.h"
 #include "fanControl.h"
-#include "rampsStepper.h"
+#include "RampsStepper.h"
 #include "queue.h"
 #include "command.h"
 
@@ -19,10 +19,10 @@ RobotGeometry geometry;
 Interpolation interpolator;
 Queue<Cmd> queue(15);
 Command command;
-
+bool absolute=true;
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   
   //various pins..
   pinMode(HEATER_0_PIN  , OUTPUT);
@@ -70,6 +70,11 @@ void setup() {
 }
 
 void setStepperEnable(bool enable) {
+  if(enable){
+    Serial.println("echo Enable Stepper");
+  }else{
+    Serial.println("echo Disable Stepper");
+  }
   stepperRotate.enable(enable);
   stepperLower.enable(enable);
   stepperHigher.enable(enable); 
@@ -93,11 +98,12 @@ void loop () {
   if (!queue.isFull()) {
     if (command.handleGcode()) {
       queue.push(command.getCmd());
-      printOk();
+      
     }
   }
   if ((!queue.isEmpty()) && interpolator.isFinished()) {
     executeCommand(queue.pop());
+    printOk();
   }
     
   if (millis() %500 <250) {
@@ -108,10 +114,30 @@ void loop () {
 }
 
 
-
-
 void cmdMove(Cmd (&cmd)) {
-  interpolator.setInterpolation(cmd.valueX, cmd.valueY, cmd.valueZ, cmd.valueE, cmd.valueF);
+   if(absolute){
+    Serial.print("echo move abs");
+    Serial.print(" X:");
+    Serial.print(cmd.valueX);
+    Serial.print(" Y:");
+    Serial.print(cmd.valueY);
+    Serial.print(" Z:");
+    Serial.print(cmd.valueZ);
+    Serial.print(" E:");
+    Serial.println(cmd.valueE);
+    interpolator.setInterpolation(cmd.valueX, cmd.valueY, cmd.valueZ, cmd.valueE, cmd.valueF);
+   }else{
+    Serial.print("echo move rel:");
+    Serial.print(" X:");
+    Serial.print(interpolator.getXPosmm()+cmd.valueX);
+    Serial.print(" Y:");
+    Serial.print(interpolator.getYPosmm()+cmd.valueY);
+    Serial.print(" Z:");
+    Serial.print(interpolator.getZPosmm()+cmd.valueZ);
+    Serial.print(" E:");
+    Serial.println(interpolator.getEPosmm()+cmd.valueE);
+    interpolator.setInterpolation(interpolator.getXPosmm()+cmd.valueX,interpolator.getYPosmm()+cmd.valueY, interpolator.getZPosmm()+cmd.valueZ, interpolator.getEPosmm()+cmd.valueE, cmd.valueF);
+   }
 }
 void cmdDwell(Cmd (&cmd)) {
   delay(int(cmd.valueT * 1000));
@@ -151,6 +177,27 @@ void cmdFanOff() {
   fan.enable(false);
 }
 
+void cmdGetPos() {
+  Serial.print("X:");
+  Serial.print(geometry.getXmm());
+  Serial.print(" Y:");
+  Serial.print(interpolator.getYPosmm());
+  Serial.print(" Z:");
+  Serial.print(interpolator.getZPosmm());
+  Serial.print(" E:");
+  Serial.print(interpolator.getEPosmm());
+  Serial.print(" ");
+}
+
+void cmdHome(Cmd (&cmd)){
+  //Home always all axis because we do not have the passed XYZ letters here
+    cmd.valueX=0;   
+    cmd.valueY=120;   
+    cmd.valueZ=120;   
+    cmdMove(cmd);
+}
+
+
 void handleAsErr(Cmd (&cmd)) {
   printComment("Unknown Cmd " + String(cmd.id) + String(cmd.num) + " (queued)"); 
   printFault();
@@ -164,17 +211,29 @@ void executeCommand(Cmd cmd) {
     return;
   }
   
-  if (cmd.valueX == NAN) {
-    cmd.valueX = interpolator.getXPosmm();
+  if (isnan(cmd.valueX)) {
+    cmd.valueX=0;
+    if(absolute){
+      cmd.valueX = interpolator.getXPosmm();
+    }
   }
-  if (cmd.valueY == NAN) {
-    cmd.valueY = interpolator.getYPosmm();
+  if (isnan(cmd.valueY)) {
+    cmd.valueY=0;
+    if(absolute){
+      cmd.valueY = interpolator.getYPosmm();
+    }
   }
-  if (cmd.valueZ == NAN) {
-    cmd.valueZ = interpolator.getZPosmm();
+  if (isnan(cmd.valueZ)) {
+    cmd.valueZ=0;
+    if(absolute){
+      cmd.valueZ = interpolator.getZPosmm();
+    }
   }
-  if (cmd.valueE == NAN) {
-    cmd.valueE = interpolator.getEPosmm();
+  if (isnan(cmd.valueE)) {
+    cmd.valueE=0;
+    if(absolute){
+      cmd.valueE = interpolator.getEPosmm();
+    }
   }
   
    //decide what to do
@@ -183,9 +242,10 @@ void executeCommand(Cmd cmd) {
       case 0: cmdMove(cmd); break;
       case 1: cmdMove(cmd); break;
       case 4: cmdDwell(cmd); break;
+      case 28: cmdHome(cmd); break;
       //case 21: break; //set to mm
-      //case 90: cmdToAbsolute(); break;
-      //case 91: cmdToRelative(); break;
+      case 90: absolute=true; break;
+      case 91: absolute=false; break;
       //case 92: cmdSetPosition(cmd); break;
       default: handleAsErr(cmd); 
     }
@@ -196,8 +256,10 @@ void executeCommand(Cmd cmd) {
       case 5: cmdGripperOff(cmd); break;
       case 17: cmdStepperOn(); break;
       case 18: cmdStepperOff(); break;
+      case 105: Serial.print("T:0 B:0 "); break;
       case 106: cmdFanOn(); break;
       case 107: cmdFanOff(); break;
+      case 114: cmdGetPos();break;
       default: handleAsErr(cmd); 
     }
   } else {
