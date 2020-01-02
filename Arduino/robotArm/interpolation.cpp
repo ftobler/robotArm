@@ -42,6 +42,9 @@ void Interpolation::setCurrentPos(Point p) {
   yDelta = 0;
   zDelta = 0;
   eDelta = 0;
+  xPosmm = xStartmm;
+  yPosmm = yStartmm;
+  zPosmm = zStartmm;
 }
 
 void Interpolation::setInterpolation(Point p1, float v) {
