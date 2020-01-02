@@ -2,7 +2,7 @@
 #include "robotGeometry.h"
 #include "interpolation.h"
 #include "fanControl.h"
-#include "rampsStepper.h"
+#include "RampsStepper.h"
 #include "queue.h"
 #include "command.h"
 
@@ -19,10 +19,12 @@ RobotGeometry geometry;
 Interpolation interpolator;
 Queue<Cmd> queue(15);
 Command command;
-
+bool absolute=true;
+int button=0;
+int button_released=0;
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   
   //various pins..
   pinMode(HEATER_0_PIN  , OUTPUT);
@@ -38,6 +40,8 @@ void setup() {
   pinMode(Q_STEP_PIN   , OUTPUT);
   pinMode(Q_DIR_PIN    , OUTPUT);
   pinMode(Q_ENABLE_PIN , OUTPUT);
+
+  pinMode(X_MIN_PIN,INPUT);
   
   //GripperPins
   pinMode(STEPPER_GRIPPER_PIN_0, OUTPUT);
@@ -70,6 +74,11 @@ void setup() {
 }
 
 void setStepperEnable(bool enable) {
+  if(enable){
+    Serial.println("echo Enable Stepper");
+  }else{
+    Serial.println("echo Disable Stepper");
+  }
   stepperRotate.enable(enable);
   stepperLower.enable(enable);
   stepperHigher.enable(enable); 
@@ -77,7 +86,33 @@ void setStepperEnable(bool enable) {
   fan.enable(enable);
 }
 
+void actionButton(){
+  button = digitalRead(X_MIN_PIN);
+  if(button == LOW && button_released == 0){
+    button_released=1;
+    
+   Serial.println("echo Action Button pressed");
+    if(queue.isEmpty()){
+      String gcode[]={"M17","G28","G1 Z120 Y120","G1 X5 Z-90 Y100","G4 T1","G1 Z-145 Y95","G1 Y132","M40","M18"};
+      for (int a=0; a <9; a++){
+      command.insertGcode(gcode[a]);
+      queue.push(command.getCmd());
+      }
+    }else{
+      Serial.println("echo clear command queue");
+      queue.clear();
+    }
+  }
+  if(button_released == 1 && button == HIGH){
+    button_released=0;
+    Serial.println("echo Button released");
+    delay(700);
+  }
+}
+
 void loop () {
+  actionButton();
+
   //update and Calculate all Positions, Geometry and Drive all Motors...
   interpolator.updateActualPosition();
   geometry.set(interpolator.getXPosmm(), interpolator.getYPosmm(), interpolator.getZPosmm());
@@ -93,11 +128,12 @@ void loop () {
   if (!queue.isFull()) {
     if (command.handleGcode()) {
       queue.push(command.getCmd());
-      printOk();
+      
     }
   }
   if ((!queue.isEmpty()) && interpolator.isFinished()) {
     executeCommand(queue.pop());
+    printOk();
   }
     
   if (millis() %500 <250) {
@@ -111,7 +147,30 @@ void loop () {
 
 
 void cmdMove(Cmd (&cmd)) {
-  interpolator.setInterpolation(cmd.valueX, cmd.valueY, cmd.valueZ, cmd.valueE, cmd.valueF);
+
+   if(absolute){
+    Serial.print("echo move abs");
+    Serial.print(" X:");
+    Serial.print(cmd.valueX);
+    Serial.print(" Y:");
+    Serial.print(cmd.valueY);
+    Serial.print(" Z:");
+    Serial.print(cmd.valueZ);
+    Serial.print(" E:");
+    Serial.println(cmd.valueE);
+    interpolator.setInterpolation(cmd.valueX, cmd.valueY, cmd.valueZ, cmd.valueE, cmd.valueF);
+   }else{
+    Serial.print("echo move rel:");
+    Serial.print(" X:");
+    Serial.print(interpolator.getXPosmm()+cmd.valueX);
+    Serial.print(" Y:");
+    Serial.print(interpolator.getYPosmm()+cmd.valueY);
+    Serial.print(" Z:");
+    Serial.print(interpolator.getZPosmm()+cmd.valueZ);
+    Serial.print(" E:");
+    Serial.println(interpolator.getEPosmm()+cmd.valueE);
+    interpolator.setInterpolation(interpolator.getXPosmm()+cmd.valueX,interpolator.getYPosmm()+cmd.valueY, interpolator.getZPosmm()+cmd.valueZ, interpolator.getEPosmm()+cmd.valueE, cmd.valueF);
+   }
 }
 void cmdDwell(Cmd (&cmd)) {
   delay(int(cmd.valueT * 1000));
@@ -151,6 +210,71 @@ void cmdFanOff() {
   fan.enable(false);
 }
 
+void cmdGetPos() {
+  Serial.print("X:");
+  Serial.print(geometry.getXmm());
+  Serial.print(" Y:");
+  Serial.print(interpolator.getYPosmm());
+  Serial.print(" Z:");
+  Serial.print(interpolator.getZPosmm());
+  Serial.print(" E:");
+  Serial.print(interpolator.getEPosmm());
+  Serial.print(" ");
+  Serial.print(stepperHigher.getPositionRad());
+}
+
+void cmdSetPosition(Cmd (&cmd)){
+  interpolator.setCurrentPos(cmd.valueX,cmd.valueY,cmd.valueZ,cmd.valueE);
+}
+
+void cmdHome(Cmd (&cmd)){
+  //Home always all axis because we do not have the passed XYZ letters here
+  //Do homing by moving up the lower shank and disable the higher shank
+  Serial.println(stepperLower.getPosition());
+  stepperLower.setPosition(0);
+  stepperHigher.enable(false); //Spring
+  for(int i=0;i<250;i++){
+    stepperLower.stepToPosition(i*-1);  
+    //stepperHigher.stepToPosition(i*-1);  
+    stepperLower.update();
+    //stepperHigher.update();
+    delay(10); 
+    Serial.println(stepperLower.getPosition());
+    //Serial.println(stepperHigher.getPosition());
+  }
+  stepperHigher.enable(true);
+  interpolator.setCurrentPos(0,-20,125,0);
+  cmd.valueX=0;
+  cmd.valueY=120;
+  cmd.valueZ=160;
+  cmdMove(cmd) ;
+}
+
+
+void cmdOpen(Cmd (&cmd)){
+  //Home always all axis because we do not have the passed XYZ letters here
+  Serial.println(stepperLower.getPosition());
+  stepperLower.setPosition(0);
+  stepperHigher.setPosition(0);
+  stepperHigher.enable(false);
+  for(int i=0;i<200;i++){
+    stepperLower.stepToPosition(i*-1);  
+    stepperLower.update();
+
+    if(i==100){
+       Serial.println("echo High turbo");
+      stepperHigher.enable(true);
+    }
+    if(i>100){
+          stepperHigher.stepToPosition(i*0.05);  
+          stepperHigher.update();
+    }
+    delay(15); 
+  }
+  stepperHigher.enable(true);
+}
+
+
 void handleAsErr(Cmd (&cmd)) {
   printComment("Unknown Cmd " + String(cmd.id) + String(cmd.num) + " (queued)"); 
   printFault();
@@ -164,17 +288,29 @@ void executeCommand(Cmd cmd) {
     return;
   }
   
-  if (cmd.valueX == NAN) {
-    cmd.valueX = interpolator.getXPosmm();
+  if (isnan(cmd.valueX)) {
+    cmd.valueX=0;
+    if(absolute){
+      cmd.valueX = interpolator.getXPosmm();
+    }
   }
-  if (cmd.valueY == NAN) {
-    cmd.valueY = interpolator.getYPosmm();
+  if (isnan(cmd.valueY)) {
+    cmd.valueY=0;
+    if(absolute){
+      cmd.valueY = interpolator.getYPosmm();
+    }
   }
-  if (cmd.valueZ == NAN) {
-    cmd.valueZ = interpolator.getZPosmm();
+  if (isnan(cmd.valueZ)) {
+    cmd.valueZ=0;
+    if(absolute){
+      cmd.valueZ = interpolator.getZPosmm();
+    }
   }
-  if (cmd.valueE == NAN) {
-    cmd.valueE = interpolator.getEPosmm();
+  if (isnan(cmd.valueE)) {
+    cmd.valueE=0;
+    if(absolute){
+      cmd.valueE = interpolator.getEPosmm();
+    }
   }
   
    //decide what to do
@@ -183,10 +319,11 @@ void executeCommand(Cmd cmd) {
       case 0: cmdMove(cmd); break;
       case 1: cmdMove(cmd); break;
       case 4: cmdDwell(cmd); break;
+      case 28: cmdHome(cmd); break;
       //case 21: break; //set to mm
-      //case 90: cmdToAbsolute(); break;
-      //case 91: cmdToRelative(); break;
-      //case 92: cmdSetPosition(cmd); break;
+      case 90: absolute=true; break;
+      case 91: absolute=false; break;
+      case 92: cmdSetPosition(cmd); break;
       default: handleAsErr(cmd); 
     }
   } else if (cmd.id == 'M') {
@@ -196,13 +333,17 @@ void executeCommand(Cmd cmd) {
       case 5: cmdGripperOff(cmd); break;
       case 17: cmdStepperOn(); break;
       case 18: cmdStepperOff(); break;
+      case 105: Serial.print("T:0 B:0 "); break;
       case 106: cmdFanOn(); break;
       case 107: cmdFanOff(); break;
+      case 114: cmdGetPos();break;
+      case 40: cmdOpen(cmd);break;
       default: handleAsErr(cmd); 
     }
   } else {
     handleAsErr(cmd); 
   }
 }
+
 
 
