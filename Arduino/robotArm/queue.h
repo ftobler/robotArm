@@ -9,6 +9,7 @@ public:
   Element pop();
   bool isFull() const;
   bool isEmpty() const;
+  void clear();
   int getFreeSpace() const;
   int getMaxLength() const;
   inline int getUsedSpace() const;
@@ -51,6 +52,12 @@ Element Queue<Element>::pop() {
   int s = start;
   start = (start + 1) % len;
   return data[(s) % len];
+}
+
+template <typename Element>
+void Queue<Element>::clear() {
+  count=0;
+  start=0;
 }
 
 template <typename Element>
