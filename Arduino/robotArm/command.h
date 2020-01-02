@@ -17,6 +17,7 @@ struct Cmd {
 class Command {
   public:
     Command();
+    bool insertGcode(String line);
     bool handleGcode();
     bool processMessage(String& msg);
     Cmd getCmd() const;

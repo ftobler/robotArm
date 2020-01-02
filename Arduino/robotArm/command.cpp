@@ -12,6 +12,11 @@ Command::Command() {
   message = "";
 }
 
+bool Command::insertGcode(String line){
+  processMessage(line);
+  return true;
+}
+
 bool Command::handleGcode() {
   if (Serial.available()) {
     char c = Serial.read();
@@ -44,7 +49,8 @@ bool Command::processMessage(String& msg) {
   }
   String s = msg.substring(first, last);
   command.num = s.toInt();
- // Serial.println(cmd.num);
+  Serial.print("echo CMD:");
+  Serial.println(command.num);
 
 
   //parse up to 5 Values
