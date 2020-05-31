@@ -31,6 +31,7 @@ bool Command::handleGcode() {
 
 bool Command::processMessage(String& msg) {
   msg += ' ';  //helps parsing
+  msg.toUpperCase();
   command.id = msg[0];
   //exit if not GCode
   if ((command.id != 'G') && (command.id != 'M')) {
@@ -72,7 +73,7 @@ bool Command::processMessage(String& msg) {
           case 'X': command.valueX = value; break; 
           case 'Y': command.valueY = value; break; 
           case 'Z': command.valueZ = value; break; 
-          case 'E': command.valueZ = value; break; 
+          case 'E': command.valueE = value; break; 
           case 'F': command.valueF = value; break; 
           case 'T': command.valueT = value; break; 
           default: i = 5;

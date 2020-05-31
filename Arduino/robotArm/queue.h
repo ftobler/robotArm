@@ -42,6 +42,7 @@ Queue<Element>::Queue(Queue<Element>& q) {
 template <typename Element>
 bool Queue<Element>::push(Element elem) {
   data[(start + count++) % len] = elem;
+  return true;
 }
 
 template <typename Element>

@@ -2,7 +2,7 @@
 #include "robotGeometry.h"
 #include "interpolation.h"
 #include "fanControl.h"
-#include "rampsStepper.h"
+#include "RampsStepper.h"
 #include "queue.h"
 #include "command.h"
 
@@ -204,5 +204,3 @@ void executeCommand(Cmd cmd) {
     handleAsErr(cmd); 
   }
 }
-
-
