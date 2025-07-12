@@ -21,6 +21,10 @@ jobs:
           arduino-cli core update-index
           arduino-cli core install arduino:avr
 
+      - name: Add library(s) from Arduino Library Manager
+        run: |
+          arduino-cli lib install AccelStepper
+
       - name: Compile sketch robotArm
         run: |
           arduino-cli compile --fqbn arduino:avr:mega ./Arduino/robotArm
