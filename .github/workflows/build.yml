@@ -23,7 +23,7 @@ jobs:
 
       - name: Add library(s) from Arduino Library Manager
         run: |
-          arduino-cli lib install AccelStepper
+          arduino-cli lib install Stepper
 
       - name: Compile sketch robotArm
         run: |
